@@ -415,3 +415,25 @@ button,.btn,.k,.tabs a{touch-action:manipulation;-webkit-tap-highlight-color:tra
   .trend{grid-template-columns:1fr;gap:6px}
   .trend p{max-width:none}
 }
+
+/* weak spots */
+.ws-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:12px}
+.ws{border-radius:20px;padding:16px;background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.9);box-shadow:0 1px 0 #fff inset,0 10px 24px -16px rgba(24,32,88,.3);display:grid;gap:8px;align-content:start}
+.ws-h{display:flex;gap:10px;align-items:center}
+.ws-h b{display:block;font-size:16px}.ws-h small{color:var(--mute);font-size:13px}
+.ws-lv{width:10px;height:34px;border-radius:6px;background:var(--lc);flex:none}
+.ws-chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12.5px;font-weight:600;padding:4px 9px;border-radius:999px;background:rgba(28,36,84,.07);color:var(--ink-2)}
+.chip.bad{background:rgba(207,45,45,.1);color:var(--bad)}.chip.good{background:rgba(20,128,60,.12);color:var(--ok)}
+.ws-n,.ws-s{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.55}
+.ws-s span{display:inline-block;margin-right:10px;white-space:nowrap}.ws-s i{font-style:normal;color:var(--mute);font-family:var(--num)}
+.ws-act{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}.ws-act .btn{flex:1 1 120px;justify-content:center}
+.ws-all{margin:6px 0 10px}.ws-all summary{cursor:pointer;font-weight:600;font-size:14.5px;padding:8px 0}
+.bars{list-style:none;margin:6px 0 4px;padding:0;display:grid;gap:7px}
+.bars li{display:grid;grid-template-columns:minmax(96px,150px) 1fr 52px;gap:10px;align-items:center;font-size:13px}
+.b-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.b-t{position:relative;height:12px;border-radius:6px;background:rgba(28,36,84,.06)}
+.b-t i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;opacity:.85}
+.b-t u{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);text-decoration:none;border-radius:1px}
+.b-v{text-align:right;font-family:var(--num);font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.panel .note{font-size:13px;color:var(--mute);margin:8px 0 0;line-height:1.55}

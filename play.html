@@ -27,7 +27,8 @@ const stepsHTML=a=>a.map(s=>`<li><span>${s}</span></li>`).join('');
 
 let mode='sprint',lvOn=getPrefs().lv,mx=null,pp=penPrefs(),pad=null;
 const h0=location.hash.slice(1);
-const AUTO=['sprint','free','exam'].includes(h0)?h0:null;
+let DRILL=h0.startsWith('drill-')&&byId[h0.slice(6)]?h0.slice(6):null;   // practise one technique, untimed, with solutions
+const AUTO=DRILL?'free':['sprint','free','exam'].includes(h0)?h0:null;
 if(AUTO)mode=AUTO;
 
 function renderSetup(){
@@ -61,12 +62,12 @@ function startMix(){
   try{history.replaceState(null,'',location.pathname)}catch(e){}
   const lv=lvOn,timed=mode!=='free';
   const lvTxt=LV.filter((l,i)=>lv[i]).map(l=>l.th).join(', ');
-  mxSet.innerHTML=`<div class="row" style="justify-content:space-between"><span class="meta" style="margin:0"><span>${timed?I('timer')+'Sprint 60 วินาที':I('free')+'ไม่จับเวลา'}</span><span>ระดับ: ${lvTxt}</span></span><button class="btn ghost" id="mxReset">${I('refresh')}เปลี่ยนการตั้งค่า</button></div>`;
-  mxReset.onclick=()=>{if(mx&&mx.timer)clearInterval(mx.timer);if(pad){pad.destroy();pad=null}renderSetup()};
+  mxSet.innerHTML=`<div class="row" style="justify-content:space-between"><span class="meta" style="margin:0"><span>${timed?I('timer')+'Sprint 60 วินาที':I('free')+'ไม่จับเวลา'}</span><span>${DRILL?'ฝึกเฉพาะ: '+byId[DRILL].en:'ระดับ: '+lvTxt}</span></span><button class="btn ghost" id="mxReset">${I('refresh')}เปลี่ยนการตั้งค่า</button></div>`;
+  mxReset.onclick=()=>{DRILL=null;if(mx&&mx.timer)clearInterval(mx.timer);if(pad){pad.destroy();pad=null}renderSetup()};
   const best0=bestSprint();
   const usePen=pp.on&&!!Recog.load();
   if(pad){pad.destroy();pad=null}
-  mx={mode,wc:0,tn0:tempoNow(),pool:T.filter(t=>lv[t.lv]),score:0,total:0,miss:[],t0:performance.now(),end:performance.now()+60000,timer:null,cur:null,tries:0,done:false,streak:0,bs:0,best0,a0:today().a,lv:lv.slice()};
+  mx={mode,wc:0,tn0:tempoNow(),pool:DRILL?[byId[DRILL]]:T.filter(t=>lv[t.lv]),score:0,total:0,miss:[],t0:performance.now(),end:performance.now()+60000,timer:null,cur:null,tries:0,done:false,streak:0,bs:0,best0,a0:today().a,lv:lv.slice()};
   mxArea.innerHTML=`<section class="stage glass">${timed?'<div class="timer"><i id="tBar"></i></div>':''}
    <div class="score"><div>ถูก<b id="mScore">0</b></div><div>ทำไป<b id="mTot">0</b></div>${timed?'<div>เหลือ (วินาที)<b id="mTime">60</b></div>':''}${mode==='sprint'?`<div>สถิติ<b>${best0||'–'}</b></div>`:''}</div>
    <div class="q huge" id="mQ"></div>
@@ -81,7 +82,7 @@ function startMix(){
   if(timed)mx.timer=setInterval(()=>{const left=Math.max(0,mx.end-performance.now());tBar.style.transform=`scaleX(${left/60000})`;mTime.textContent=Math.ceil(left/1000);if(left<=0)endMix()},200);
   nextMix();mIn.focus({preventScroll:true})}
 
-function nextMix(){const t=pick(mx.pool);mx.cur={t,p:t.gen()};mx.tries=0;mx.done=false;setGo();
+function nextMix(){const t=pick(mx.pool);mx.cur={t,p:t.gen()};mx.qT0=performance.now();mx.tries=0;mx.done=false;setGo();
   mQ.innerHTML=qHTML(mx.cur.p.q);mIn.value='';mIn.className='ans';mPrism.innerHTML='';mViz.innerHTML='';mSteps.innerHTML='';mTag.textContent='';if(pad){pad.reset();pad.lock(false)}else mIn.focus({preventScroll:true})}
 function setGo(){const g=document.getElementById('mGo');if(g)g.innerHTML=(mx&&mx.done?I('next')+'ข้อต่อไป':I('check')+'ตอบ')}
 const hit=ok=>{if(ok){mx.streak++;mx.bs=Math.max(mx.bs,mx.streak)}else mx.streak=0};
@@ -89,6 +90,7 @@ function mixAnswer(raw,viaPen){const{t,p}=mx.cur;const rd=viaPen?` · ระบ�
   if(mx.done){nextMix();return}
   const v=parse(raw);if(isNaN(v))return;
   const ok=same(v,p.ans);
+  if(mx.tries===0&&!viaPen)logTime(t.id,performance.now()-mx.qT0,ok,p.q);   // pen answers excluded: writing time is not thinking time
   if(mode!=='free'){mx.total++;hit(ok);if(ok){mx.score++;mx.wc+=TW[t.lv];record(t.id,true)}else{record(t.id,false);mx.miss.push({t,p,v,pen:!!viaPen})}
     mScore.textContent=mx.score;mTot.textContent=mx.total;nextMix();
     mTag.innerHTML=ok?`<span class="okc">ข้อที่แล้วถูก</span> · ${t.en}`:`<span class="badc">ข้อที่แล้วผิด</span> · ${p.q} = ${f(p.ans)}${rd}`;return}

@@ -7,6 +7,7 @@ create table public.technique_progress (
   correct integer not null default 0 check (correct >= 0),
   wrong integer not null default 0 check (wrong >= 0),
   streak integer not null default 0 check (streak >= 0),
+  timing jsonb not null default '[]'::jsonb, -- migration technique_progress_add_timing: last 40 first-attempt timings [ms, ok, question, epoch]
   best_streak integer not null default 0 check (best_streak >= 0),
   updated_at timestamptz not null default now(),
   primary key (user_id, technique_id)

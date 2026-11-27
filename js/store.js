@@ -9,6 +9,14 @@ try{S=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){S={}}
 try{const d=JSON.parse(localStorage.getItem(DKEY)||'null');if(d&&d.days)D={days:d.days,runs:d.runs||[]}}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const saveD=()=>{try{localStorage.setItem(DKEY,JSON.stringify(D))}catch(e){}};
+/* per-answer timing log: TM[techId] = last 40 first-attempt answers as [ms, ok(1/0), question text, epoch ms] */
+const TKEY='mm-time-v1';let TM={};
+try{TM=JSON.parse(localStorage.getItem(TKEY)||'{}')||{}}catch(e){TM={}}
+const saveT=()=>{try{localStorage.setItem(TKEY,JSON.stringify(TM))}catch(e){}};
+function logTime(id,ms,ok,q){
+  if(!(ms>=400&&ms<=60000))return;   // ignore accidental taps and walked-away answers
+  const a=TM[id]||(TM[id]=[]);a.push([Math.round(ms),ok?1:0,String(q).slice(0,40),Date.now()]);
+  if(a.length>40)a.splice(0,a.length-40);saveT();pushOne(id)}
 const st=id=>S[id]||(S[id]={c:0,w:0,s:0,b:0});
 const mastered=id=>st(id).b>=MASTER;
 const dataChanged=()=>{if(typeof window.onData==='function')window.onData()};
@@ -38,6 +46,30 @@ const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
 function tempoNow(upTo){const t=tempos();const a=t.slice(Math.max(0,(upTo==null?t.length:upTo)-5),upTo==null?t.length:upTo);return a.length?{v:avg(a),n:a.length}:null}
 function tempoPrev(){const t=tempos();if(t.length<8)return null;const a=t.slice(Math.max(0,t.length-10),t.length-5);return a.length>=3?{v:avg(a),n:a.length}:null}
 const tempoBest=()=>tempos().reduce((m,v)=>Math.max(m,v),0);
+
+/* ---------- weak spots: where time goes ---------- */
+/* For each technique with enough timed answers: median time of correct first attempts, compared with the median of your
+   OTHER techniques at the same level (so 3-digit problems are not blamed for being bigger than 2-digit ones),
+   plus accuracy over the same window. Thresholds are first guesses, not calibrated. */
+const WS_MIN=8,WS_WIN=30;
+const med=a=>{const s=[...a].sort((x,y)=>x-y),n=s.length;return n?(n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2):0};
+function weakSpots(){
+  const rows=[];
+  for(const t of T){
+    const log=(TM[t.id]||[]).slice(-WS_WIN),good=log.filter(e=>e[1]);
+    if(log.length<WS_MIN||good.length<5)continue;
+    const m=med(good.map(e=>e[0])),acc=log.filter(e=>e[1]).length/log.length;
+    let trend=null;if(good.length>=16){const h=good.length>>1;trend=med(good.slice(h).map(e=>e[0]))/med(good.slice(0,h).map(e=>e[0]))-1}
+    rows.push({t,n:log.length,m,acc,trend,slow:[...good].sort((a,b)=>b[0]-a[0]).slice(0,3)})}
+  const all=med(rows.map(r=>r.m));
+  rows.forEach(r=>{const peers=rows.filter(x=>x.t.lv===r.t.lv&&x!==r);
+    r.base=peers.length>=2?med(peers.map(x=>x.m)):all;   // too few peers at that level: use all techniques
+    r.ratio=r.base?r.m/r.base:1;
+    r.score=Math.max(0,r.ratio-1)+2*Math.max(0,.9-r.acc);
+    r.flags=[r.ratio>=1.35?'slow':'',r.acc<.75?'shaky':''].filter(Boolean)});
+  rows.sort((a,b)=>b.score-a.score);
+  return{rows,measured:rows.length,total:T.length,need:WS_MIN,
+    pending:T.filter(t=>(TM[t.id]||[]).length<WS_MIN).length}}
 
 /* ---------- recording ---------- */
 const GOAL=30; // answers per day
@@ -78,7 +110,7 @@ async function upsert(table,rows,conflict){
   if(!sb||!user||!rows.length)return true;setSync('syncing');
   try{for(let i=0;i<rows.length;i+=200){const{error}=await sb.from(table).upsert(rows.slice(i,i+200),{onConflict:conflict});if(error){setSync('error');return false}}setSync('ok');return true}
   catch(e){setSync('error');return false}}
-const techRow=id=>{const s=st(id);return{user_id:user.id,technique_id:id,correct:s.c,wrong:s.w,streak:s.s,best_streak:s.b,updated_at:new Date().toISOString()}};
+const techRow=id=>{const s=st(id);return{user_id:user.id,technique_id:id,correct:s.c,wrong:s.w,streak:s.s,best_streak:s.b,timing:TM[id]||[],updated_at:new Date().toISOString()}};
 const dayRow=k=>({user_id:user.id,day:k,attempts:D.days[k].a,correct:D.days[k].c,updated_at:new Date().toISOString()});
 const runRow=r=>({user_id:user.id,client_id:r.cid,played_at:r.t,mode:r.mode,score:r.sc,total:r.tot,secs:r.secs|0,best_streak:r.bs|0,belt:0,passed:false,tempo:r.tp==null?null:r.tp});
 function pushOne(id){later('t'+id,()=>upsert('technique_progress',[techRow(id)],'user_id,technique_id'))}
@@ -96,12 +128,13 @@ async function pullAndMerge(){
   if(!sb||!user)return;setSync('syncing');
   try{
     const[t,d,r]=await Promise.all([
-      sb.from('technique_progress').select('technique_id,correct,wrong,streak,best_streak'),
+      sb.from('technique_progress').select('technique_id,correct,wrong,streak,best_streak,timing'),
       sb.from('daily_stats').select('day,attempts,correct'),
       sb.from('play_runs').select('client_id,played_at,mode,score,total,secs,best_streak,tempo').order('played_at',{ascending:false}).limit(300)]);
     if(t.error||d.error||r.error){setSync('error');return}
     (t.data||[]).forEach(x=>{if(!byId[x.technique_id])return;const l=st(x.technique_id);
-      if(x.correct+x.wrong>l.c+l.w){l.c=x.correct;l.w=x.wrong;l.s=x.streak}l.b=Math.max(l.b,x.best_streak)});
+      if(x.correct+x.wrong>l.c+l.w){l.c=x.correct;l.w=x.wrong;l.s=x.streak}l.b=Math.max(l.b,x.best_streak);
+      if(Array.isArray(x.timing)&&x.timing.length){const m=new Map();(TM[x.technique_id]||[]).concat(x.timing).forEach(e=>{if(Array.isArray(e)&&e.length>=4)m.set(e[3],e)});TM[x.technique_id]=[...m.values()].sort((a,b)=>a[3]-b[3]).slice(-40);saveT()}});
     (d.data||[]).forEach(x=>{const k=String(x.day).slice(0,10),l=D.days[k];if(!l||x.attempts>l.a)D.days[k]={a:x.attempts,c:x.correct}});
     const have=new Set(D.runs.map(x=>x.cid));
     (r.data||[]).forEach(x=>{if(!have.has(x.client_id))D.runs.push({cid:x.client_id,t:x.played_at,mode:x.mode,sc:x.score,tot:x.total,secs:x.secs,bs:x.best_streak,tp:x.tempo==null?null:+x.tempo})});

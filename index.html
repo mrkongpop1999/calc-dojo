@@ -57,6 +57,23 @@ function trendHTML(){
   const t2=have.length>=2?lineHTML(pts,`ความแม่นรายสัปดาห์ (เฉพาะสัปดาห์ที่ทำ ≥10 ข้อ) จาก ${have[0]}% เป็น ${have[have.length-1]}%`,'ความแม่นรายสัปดาห์',v=>v+'%'):`<div class="trend"><p>เส้นความแม่นรายสัปดาห์จะขึ้นเมื่อมีอย่างน้อย 2 สัปดาห์ที่ทำครบ 10 ข้อขึ้นไป</p></div>`;
   return t1+t2}
 
+const sec=ms=>(ms/1000).toFixed(1);
+function weakHTML(){
+  const w=weakSpots();
+  if(!w.measured)return `<p class="empty">ระบบเริ่มจับเวลาต่อข้อแล้ว เล่นหรือฝึกให้ได้อย่างน้อย ${w.need} ข้อต่อเทคนิค ระบบจะบอกว่าเทคนิคไหนเสียเวลาเป็นพิเศษ (ตอนนี้วัดได้ 0 จาก ${w.total} เทคนิค)</p>`;
+  const bad=w.rows.filter(r=>r.score>=.2).slice(0,4);
+  const card=r=>`<article class="ws">
+    <div class="ws-h"><span class="ws-lv" style="--lc:${LV[r.t.lv].col}"></span><div><b>${r.t.en}</b><small>${r.t.th} · ${LV[r.t.lv].th}</small></div></div>
+    <div class="ws-chips">${r.flags.includes('slow')?`<span class="chip bad">ช้ากว่าเทคนิคอื่นระดับเดียวกัน +${Math.round((r.ratio-1)*100)}%</span>`:''}${r.flags.includes('shaky')?`<span class="chip bad">แม่นแค่ ${Math.round(r.acc*100)}%</span>`:''}${!r.flags.length?`<span class="chip">ช้ากว่าเล็กน้อย +${Math.round((r.ratio-1)*100)}%</span>`:''}${r.trend!==null?`<span class="chip ${r.trend<=-.05?'good':''}">${r.trend<=-.05?'เร็วขึ้น '+Math.round(-r.trend*100)+'%':r.trend>=.05?'ช้าลง '+Math.round(r.trend*100)+'%':'ความเร็วคงที่'} เทียบครึ่งแรก</span>`:''}</div>
+    <p class="ws-n">ตอบถูกใช้เวลากลาง <b>${sec(r.m)}</b> วินาที (เทคนิคอื่นระดับเดียวกัน ${sec(r.base)} วินาที) · จาก ${r.n} ข้อล่าสุด</p>
+    <p class="ws-s">ข้อที่ช้าสุด: ${r.slow.map(e=>`<span>${esc(e[2])} <i>${sec(e[0])} วิ</i></span>`).join('')}</p>
+    <div class="ws-act"><a class="btn pri" href="play.html#drill-${r.t.id}">${I('play')}ฝึกเทคนิคนี้</a><a class="btn" href="learn.html#${r.t.id}">ดูวิธีคิด</a></div></article>`;
+  const mx=Math.max(...w.rows.map(r=>Math.max(r.m,r.base)));
+  const bars=[...w.rows].sort((a,b)=>b.m-a.m).map(r=>`<li><span class="b-n">${r.t.en}</span><span class="b-t" aria-hidden="true"><i style="width:${Math.round(100*r.m/mx)}%;background:${LV[r.t.lv].col}"></i><u style="left:${Math.round(100*r.base/mx)}%"></u></span><span class="b-v">${sec(r.m)} วิ</span></li>`).join('');
+  return `${bad.length?`<div class="ws-list">${bad.map(card).join('')}</div>`:'<p class="empty" style="margin-bottom:10px">ตอนนี้ยังไม่เจอเทคนิคที่เสียเวลาหรือพลาดผิดปกติ ดูรายละเอียดทุกเทคนิคด้านล่างได้</p>'}
+   <details class="ws-all"><summary>เวลาเฉลี่ยทุกเทคนิคที่วัดได้ (${w.measured}/${w.total})</summary><ul class="bars">${bars}</ul><p class="note">แท่งคือเวลากลางของคำตอบที่ถูก เส้นขีดคือค่ากลางของเทคนิคอื่นในระดับเดียวกัน</p></details>
+   <p class="note">วัดจากข้อแรกที่ตอบของแต่ละโจทย์ (ไม่นับข้อที่ใช้คำใบ้หรือเขียนด้วยปากกา) เทียบกับเทคนิคอื่นของคุณเอง ไม่ใช่เกณฑ์สากล · เกณฑ์ +35% และแม่นต่ำกว่า 75% เป็นค่าที่ตั้งไว้ก่อน ยังไม่ได้ปรับ${w.pending?` · อีก ${w.pending} เทคนิคยังมีข้อมูลไม่ถึง ${w.need} ข้อ`:''}</p>`}
+
 function render(){
   const t=today(),ratio=Math.min(1,t.a/GOAL),C=2*Math.PI*56;
   const tn=tempoNow(),tprev=tempoPrev(),dl=tn&&tprev?tn.v-tprev.v:null,ti=tn?tierIdx(tn.v):0,nt=TIERS[ti+1]||null,tp=nt&&tn?Math.max(0,Math.min(1,(tn.v-TIERS[ti].at)/(nt.at-TIERS[ti].at))):0;
@@ -89,6 +106,11 @@ function render(){
       <div class="seg2" role="group" aria-label="มุมมอง heatmap"><button data-m="vol" aria-pressed="${heatMode==='vol'}">จำนวนข้อ</button><button data-m="acc" aria-pressed="${heatMode==='acc'}">ความแม่น %</button></div></div>
     ${tot.a?'':'<p class="empty" style="margin-bottom:10px">ยังไม่มีสถิติ เล่นรอบแรกแล้วช่องของวันนี้จะขึ้นสี</p>'}
     ${heatHTML()}
+  </section>
+
+  <section class="panel glass" aria-labelledby="hw">
+    <div class="panel-h"><h2 id="hw">จุดอ่อนที่เสียเวลา</h2></div>
+    ${weakHTML()}
   </section>
 
   <section class="panel glass" aria-labelledby="hs">

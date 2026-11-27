@@ -4,7 +4,7 @@
 
 - 18 techniques in 3 levels (Basic / Intermediate / Advanced), each with an explanation, a step-by-step worked example and visuals (number line, area model, "prism split")
 - Random practice problems with step-by-step hints; 5 correct in a row = technique passed
-- Home page = start the game: Tempo rating (weighted correct answers per minute), daily goal and day streak, GitHub-style heatmap (volume or accuracy), personal bests, weekly accuracy trend
+- Home page = start the game: Weak-spot report (time per technique vs your other techniques at the same level, plus accuracy; drill button), Tempo rating (weighted correct answers per minute), daily goal and day streak, GitHub-style heatmap (volume or accuracy), personal bests, weekly accuracy trend
 - Play page: Sprint 60 s, or untimed with solutions; each run is saved and compared with your best
 - Learn page holds the 18 techniques
 - Pen mode in the Play page: two inks (pen 1 = answer, read as a number; pen 2 = scratch, never read). iPad: tap a pen; keyboard: keys 1 / 2. Handwriting is read by a small CNN that runs in the browser (`js/recog.js`, weights in `js/digit-model.js`, about 37 KB); when it is not sure it says so instead of marking the answer wrong. Training scripts are in `tools/` (numpy only, MNIST plus synthetic pen strokes).
