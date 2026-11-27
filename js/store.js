@@ -131,18 +131,28 @@ function closeDlg(){const e=document.getElementById('scrim');if(e){e.remove();if
 function openDlg(kind){
   closeDlg();lastFocus=document.activeElement;
   const el=document.createElement('div');el.className='scrim';el.id='scrim';
+  const eye='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const x='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
   el.innerHTML=kind==='in'
-   ?`<div class="dlg glass" role="dialog" aria-modal="true" aria-labelledby="dlgT"><h2 class="dlg-t" id="dlgT">เข้าสู่ระบบ</h2>
-     <p class="dlg-s">เพื่อให้สถิติและ Tempo ตามไปทุกเครื่อง ไม่เข้าสู่ระบบก็ใช้งานได้ตามปกติ</p>
-     <label class="lab" for="aEmail">อีเมล</label><input class="inp" id="aEmail" type="email" autocomplete="email" inputmode="email">
-     <label class="lab" for="aPass">รหัสผ่าน (อย่างน้อย 6 ตัว)</label><input class="inp" id="aPass" type="password" autocomplete="current-password">
-     <div class="fb" id="aMsg" aria-live="polite"></div>
-     <div class="row"><button class="btn pri" id="aIn">เข้าสู่ระบบ</button><button class="btn" id="aUp">สมัครใหม่</button><button class="btn ghost" id="aX" style="margin-left:auto">ปิด</button></div></div>`
-   :`<div class="dlg glass" role="dialog" aria-modal="true" aria-labelledby="dlgT"><h2 class="dlg-t" id="dlgT">บัญชีของฉัน</h2>
-     <div class="kv"><i class="dot-sync ${syncState}" id="syncDot"></i><span id="syncTxt">${SYNC_TXT[syncState]}</span></div>
-     <p class="dlg-s" style="margin-top:6px">${esc(user.email||'')}</p>
+   ?`<div class="dlg glass" role="dialog" aria-modal="true" aria-labelledby="dlgT"><button class="dlg-x" id="aX" aria-label="ปิด">${x}</button>
+     <div class="dlg-brand">${typeof MARK!=='undefined'?MARK:''}<span>Calc Dojo</span></div>
+     <h2 class="dlg-t" id="dlgT">เก็บสถิติของคุณไว้ทุกเครื่อง</h2>
+     <p class="dlg-s">Tempo, กราฟรายวัน และผลฝึกจะซิงก์ระหว่างมือถือกับคอมพิวเตอร์ ไม่ล็อกอินก็ใช้งานได้ตามปกติ</p>
+     <div class="seg2 dlg-tabs" role="tablist" aria-label="เลือกการดำเนินการ"><button role="tab" id="tIn" class="on" aria-selected="true">เข้าสู่ระบบ</button><button role="tab" id="tUp" aria-selected="false">สมัครสมาชิก</button></div>
+     <form id="aForm" novalidate>
+      <label class="lab" for="aEmail">อีเมล</label>
+      <input class="inp" id="aEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="you@example.com">
+      <label class="lab" for="aPass">รหัสผ่าน</label>
+      <div class="pw"><input class="inp" id="aPass" type="password" autocomplete="current-password" placeholder="อย่างน้อย 6 ตัวอักษร"><button type="button" class="pw-eye" id="aEye" aria-label="แสดงรหัสผ่าน" aria-pressed="false">${eye}</button></div>
+      <div class="fb" id="aMsg" aria-live="polite"></div>
+      <button class="btn pri dlg-go" id="aGo" type="submit">เข้าสู่ระบบ</button>
+     </form>
+     <button class="dlg-skip" id="aSkip" type="button">ใช้งานต่อโดยไม่ล็อกอิน</button></div>`
+   :`<div class="dlg glass" role="dialog" aria-modal="true" aria-labelledby="dlgT"><button class="dlg-x" id="aX" aria-label="ปิด">${x}</button>
+     <div class="acct"><span class="avatar" aria-hidden="true">${esc((user.email||'?').charAt(0).toUpperCase())}</span><div><h2 class="dlg-t" id="dlgT" style="margin:0">บัญชีของฉัน</h2><p class="dlg-s" style="margin:2px 0 0;word-break:break-all">${esc(user.email||'')}</p></div></div>
+     <div class="kv sync-row"><i class="dot-sync ${syncState}" id="syncDot"></i><span id="syncTxt">${SYNC_TXT[syncState]}</span></div>
      <div class="fb info" id="aMsg" aria-live="polite"></div>
-     <div class="row"><button class="btn" id="aSync">${I('refresh')}ซิงก์ตอนนี้</button><button class="btn" id="aOut">ออกจากระบบ</button><button class="btn ghost" id="aX" style="margin-left:auto">ปิด</button></div>
+     <div class="dlg-acts"><button class="btn pri" id="aSync">${I('refresh')}ซิงก์ตอนนี้</button><button class="btn" id="aOut">ออกจากระบบ</button></div>
      <p class="fine">หลังออกจากระบบ ข้อมูลในเครื่องนี้จะถูกล้าง (ข้อมูลยังอยู่ในบัญชี) เพื่อไม่ให้ปนกับคนอื่นที่ใช้เครื่องเดียวกัน</p></div>`;
   document.body.appendChild(el);
   const dlg=el.firstElementChild,msg=()=>document.getElementById('aMsg');
@@ -155,20 +165,28 @@ function openDlg(kind){
       if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}});
   document.getElementById('aX').onclick=closeDlg;
   if(kind==='in'){
+    let mode='in';
     const em=()=>aEmail.value.trim(),pw=()=>aPass.value;
-    const need=()=>{if(!em()||!pw()){say('กรอกอีเมลและรหัสผ่านก่อน','bad');return false}return true};
-    aIn.onclick=async()=>{if(!need())return;busy(true);say('กำลังเข้าสู่ระบบ…','info');
-      try{const{error}=await sb.auth.signInWithPassword({email:em(),password:pw()});
-        if(error){say(errTh(error.message),'bad');busy(false);return}closeDlg()}
+    const setMode=m=>{mode=m;tIn.classList.toggle('on',m==='in');tUp.classList.toggle('on',m==='up');tIn.setAttribute('aria-pressed',m==='in');tUp.setAttribute('aria-pressed',m==='up');tIn.setAttribute('aria-selected',m==='in');tUp.setAttribute('aria-selected',m==='up');
+      aGo.textContent=m==='in'?'เข้าสู่ระบบ':'สร้างบัญชี';aPass.autocomplete=m==='in'?'current-password':'new-password';say('')};
+    tIn.onclick=()=>setMode('in');tUp.onclick=()=>setMode('up');aSkip.onclick=closeDlg;
+    aEye.onclick=()=>{const h=aPass.type==='password';aPass.type=h?'text':'password';aEye.setAttribute('aria-pressed',h);aEye.setAttribute('aria-label',h?'ซ่อนรหัสผ่าน':'แสดงรหัสผ่าน')};
+    const check=()=>{
+      if(!em()||!/^\S+@\S+\.\S+$/.test(em())){say('กรอกอีเมลให้ถูกต้อง','bad');aEmail.focus();return false}
+      if(!pw()){say('กรอกรหัสผ่าน','bad');aPass.focus();return false}
+      if(mode==='up'&&pw().length<6){say('รหัสผ่านสั้นเกินไป ใช้อย่างน้อย 6 ตัว','bad');aPass.focus();return false}
+      return true};
+    aForm.onsubmit=async e=>{e.preventDefault();if(!check())return;busy(true);
+      try{
+        if(mode==='in'){say('กำลังเข้าสู่ระบบ…','info');
+          const{error}=await sb.auth.signInWithPassword({email:em(),password:pw()});
+          if(error){say(errTh(error.message),'bad');busy(false);return}closeDlg()}
+        else{say('กำลังสร้างบัญชี…','info');
+          const{data,error}=await sb.auth.signUp({email:em(),password:pw(),options:{emailRedirectTo:location.href.split('#')[0]}});
+          if(error){say(errTh(error.message),'bad');busy(false);return}
+          if(data.session){closeDlg()}
+          else{say('ส่งอีเมลยืนยันให้แล้ว เปิดลิงก์ในอีเมล แล้วกลับมาเข้าสู่ระบบ','info');busy(false);setMode('in');say('ส่งอีเมลยืนยันให้แล้ว เปิดลิงก์ในอีเมล แล้วกลับมาเข้าสู่ระบบ','info')}}}
       catch(e){say(errTh(e.message),'bad');busy(false)}};
-    aUp.onclick=async()=>{if(!need())return;busy(true);say('กำลังสมัคร…','info');
-      try{const{data,error}=await sb.auth.signUp({email:em(),password:pw(),options:{emailRedirectTo:location.href.split('#')[0]}});
-        if(error){say(errTh(error.message),'bad');busy(false);return}
-        if(data.session){closeDlg()}
-        else{say('ส่งอีเมลยืนยันให้แล้ว เปิดลิงก์ในอีเมล แล้วกลับมากดเข้าสู่ระบบ','info');busy(false)}}
-      catch(e){say(errTh(e.message),'bad');busy(false)}};
-    aPass.onkeydown=e=>{if(e.key==='Enter')aIn.onclick()};
-    aEmail.onkeydown=e=>{if(e.key==='Enter')aPass.focus()};
     aEmail.focus();
   }else{
     aSync.onclick=async()=>{busy(true);await pullAndMerge();busy(false);say(syncState==='error'?SYNC_TXT.error:'ซิงก์เรียบร้อย')};

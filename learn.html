@@ -18,6 +18,7 @@
 <script src="js/core.js"></script>
 <script src="js/store.js"></script>
 <script src="js/shell.js"></script>
+<script src="js/keypad.js"></script>
 <script>
 let cur=T[0].id;
 try{const h=location.hash.slice(1);if(byId[h])cur=h}catch(e){}
@@ -54,14 +55,14 @@ function renderLearn(){
     <section class="pane glass" aria-labelledby="prH">
       <div class="pane-h"><h2 id="prH">ลองทำเอง</h2><div class="pstat" id="pStat"></div></div>
       <div class="q" id="prQ"></div>
-      <div class="row"><input class="ans" id="prIn" inputmode="decimal" autocomplete="off" aria-label="คำตอบ" placeholder="คำตอบ"><button class="btn pri" id="prGo">${I('check')}ตรวจ</button></div>
+      <div class="row"><input class="ans" id="prIn" inputmode="decimal" autocomplete="off" aria-label="คำตอบ" placeholder="คำตอบ"><button class="btn pri go2" id="prGo">${I('check')}ตรวจ</button></div><div id="prKp"></div>
       <div class="row" style="margin-top:10px"><button class="btn" id="prHint">${I('hint')}ใบ้ทีละขั้น</button><button class="btn ghost" id="prSkip">${I('refresh')}ข้อใหม่</button></div>
       <div class="fb" id="prFb" aria-live="polite"></div><div id="prPrism"></div><div class="viz" id="prViz"></div><ol class="steps" id="prSteps"></ol>
       <p class="hint-line"><span class="kbd">Enter</span> ตรวจคำตอบ แล้วกดอีกครั้งเพื่อไปข้อต่อไป</p>
     </section>
   </div>`;
   exNew.onclick=newEx;bindEx();if(window.noteX)noteX.onclick=()=>{try{localStorage.setItem('mm-lab-seen','1')}catch(e){}note.remove()};
-  prGo.onclick=checkPr;prSkip.onclick=newPr;prHint.onclick=hintPr;
+  prGo.onclick=()=>prDone?newPr():checkPr();Keypad.attach(prIn,prKp);prSkip.onclick=newPr;prHint.onclick=hintPr;
   prIn.onkeydown=e=>{if(e.key==='Enter'){prDone?newPr():checkPr()}};
   newEx();newPr();renderRec();prIn.focus({preventScroll:true})}
 const qHTML=(q,ans)=>`<span>${q}</span> <span class="eq">=</span> ${ans===undefined?'<span class="eq">?</span>':`<span class="res">${f(ans)}</span>`}`;
@@ -74,11 +75,11 @@ function stepEx(n){for(let i=0;i<n&&exStep<ex.steps.length;i++){
   if(exStep>=ex.steps.length){exQ.innerHTML=qHTML(ex.q,ex.ans);exRow.innerHTML=`<button class="btn" id="exAgain">${I('refresh')}ดูอีกตัวอย่าง</button>`;exAgain.onclick=newEx}}
 function pstat(){const s=st(cur);pStat.innerHTML=`<span>ติดกัน <b>${s.s}</b>/${MASTER}</span><span>ถูก <b>${s.c}</b></span><span>ผิด <b>${s.w}</b></span>`}
 function newPr(){pr=byId[cur].gen();prHintN=0;prTries=0;prDone=false;prT0=performance.now();
-  prQ.innerHTML=qHTML(pr.q);prIn.value='';prIn.className='ans';prFb.textContent='';prFb.className='fb';prPrism.innerHTML='';prViz.innerHTML='';prSteps.innerHTML='';prHint.disabled=false;prGo.disabled=false;pstat();prIn.focus({preventScroll:true})}
+  prQ.innerHTML=qHTML(pr.q);prIn.value='';prIn.className='ans';prFb.textContent='';prFb.className='fb';prPrism.innerHTML='';prViz.innerHTML='';prSteps.innerHTML='';prHint.disabled=false;prGo.disabled=false;prGo.innerHTML=I('check')+'ตรวจ';pstat();prIn.focus({preventScroll:true})}
 const parse=v=>parseFloat(String(v).replace(/[, ]/g,''));
 const same=(a,b)=>Math.abs(a-b)<1e-9;
 function showSol(){if(!prPrism.innerHTML)prPrism.innerHTML=prismHTML(pr.split);if(!prViz.innerHTML)prViz.innerHTML=vizHTML(pr.viz,prViz);prSteps.innerHTML=pr.steps.map(s=>`<li><span>${s}</span></li>`).join('')}
-function finishPr(ok,msg){prDone=true;prHint.disabled=true;prGo.disabled=true;prQ.innerHTML=qHTML(pr.q,pr.ans);prFb.className='fb '+(ok?'ok':'bad');prFb.innerHTML=msg+` <span class="k">· Enter ไปข้อต่อไป</span>`;pstat();prIn.focus({preventScroll:true})}
+function finishPr(ok,msg){prDone=true;prHint.disabled=true;prGo.disabled=false;prGo.innerHTML=I('next')+'ข้อต่อไป';prQ.innerHTML=qHTML(pr.q,pr.ans);prFb.className='fb '+(ok?'ok':'bad');prFb.innerHTML=msg+` <span class="k">· กดข้อต่อไปได้เลย</span>`;pstat();prIn.focus({preventScroll:true})}
 function checkPr(){if(prDone)return;const v=parse(prIn.value);if(isNaN(v)){prFb.className='fb bad';prFb.textContent='พิมพ์ตัวเลขก่อนกดตรวจ';return}
   if(same(v,pr.ans)){prIn.className='ans ok';const sec=((performance.now()-prT0)/1000).toFixed(1);
     const clean=prHintN===0&&prTries===0;record(cur,clean);

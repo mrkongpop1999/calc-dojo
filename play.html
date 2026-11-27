@@ -15,6 +15,7 @@
 <script src="js/core.js"></script>
 <script src="js/store.js"></script>
 <script src="js/shell.js"></script>
+<script src="js/keypad.js"></script>
 <script src="js/digit-model.js"></script>
 <script src="js/recog.js"></script>
 <script src="js/pen.js"></script>
@@ -69,18 +70,20 @@ function startMix(){
   mxArea.innerHTML=`<section class="stage glass">${timed?'<div class="timer"><i id="tBar"></i></div>':''}
    <div class="score"><div>ถูก<b id="mScore">0</b></div><div>ทำไป<b id="mTot">0</b></div>${timed?'<div>เหลือ (วินาที)<b id="mTime">60</b></div>':''}${mode==='sprint'?`<div>สถิติ<b>${best0||'–'}</b></div>`:''}</div>
    <div class="q huge" id="mQ"></div>
-   ${usePen?'<div id="padHost"></div>':''}<div class="row" style="justify-content:center"><input class="ans" id="mIn" inputmode="decimal" autocomplete="off" aria-label="คำตอบ" placeholder="คำตอบ" ${usePen?'hidden':''}>${mode==='free'?`<button class="btn ghost" id="mSkip">${I('refresh')}ข้อใหม่</button>`:''}</div>
+   ${usePen?'<div id="padHost"></div>':''}<div class="row" style="justify-content:center"><input class="ans" id="mIn" inputmode="decimal" autocomplete="off" aria-label="คำตอบ" placeholder="คำตอบ" ${usePen?'hidden':''}></div>${usePen?'':'<div id="mKp"></div>'}${(!usePen||mode==='free')?'<div class="row act">'+(usePen?'':'<button class="btn pri go2" id="mGo">'+I('check')+'ตอบ</button>')+(mode==='free'?`<button class="btn ghost" id="mSkip">${I('refresh')}ข้อใหม่</button>`:'')+'</div>':''}
    <div class="tagline" id="mTag" aria-live="polite"></div><div id="mPrism"></div><div class="viz" id="mViz"></div><ol class="steps" id="mSteps"></ol>
    ${mode==='free'?`<div class="row" style="justify-content:center;margin-top:6px"><button class="btn" id="mStop">${I('stop')}จบและดูสรุป</button></div>`:''}</section>`;
   /* answer entry point: keyboard today, pen handwriting in round 2 both call mixAnswer(raw) */
   mIn.onkeydown=e=>{if(e.key==='Enter')mixAnswer(mIn.value)};
+  if(!usePen){Keypad.attach(mIn,mKp);mGo.onclick=()=>mixAnswer(mIn.value)}
   if(usePen)pad=new PenPad(padHost,{idle:pp.idle,onSubmit:(t)=>mixAnswer(t,true),onEmpty:()=>{if(mx&&mx.done)nextMix()}});
   if(mode==='free'){mSkip.onclick=nextMix;mStop.onclick=endMix}
   if(timed)mx.timer=setInterval(()=>{const left=Math.max(0,mx.end-performance.now());tBar.style.transform=`scaleX(${left/60000})`;mTime.textContent=Math.ceil(left/1000);if(left<=0)endMix()},200);
   nextMix();mIn.focus({preventScroll:true})}
 
-function nextMix(){const t=pick(mx.pool);mx.cur={t,p:t.gen()};mx.tries=0;mx.done=false;
+function nextMix(){const t=pick(mx.pool);mx.cur={t,p:t.gen()};mx.tries=0;mx.done=false;setGo();
   mQ.innerHTML=qHTML(mx.cur.p.q);mIn.value='';mIn.className='ans';mPrism.innerHTML='';mViz.innerHTML='';mSteps.innerHTML='';mTag.textContent='';if(pad){pad.reset();pad.lock(false)}else mIn.focus({preventScroll:true})}
+function setGo(){const g=document.getElementById('mGo');if(g)g.innerHTML=(mx&&mx.done?I('next')+'ข้อต่อไป':I('check')+'ตอบ')}
 const hit=ok=>{if(ok){mx.streak++;mx.bs=Math.max(mx.bs,mx.streak)}else mx.streak=0};
 function mixAnswer(raw,viaPen){const{t,p}=mx.cur;const rd=viaPen?` · ระบบอ่านลายมือได้ <b>${f(parse(raw))}</b>`:'';
   if(mx.done){nextMix();return}
@@ -89,11 +92,11 @@ function mixAnswer(raw,viaPen){const{t,p}=mx.cur;const rd=viaPen?` · ระบ�
   if(mode!=='free'){mx.total++;hit(ok);if(ok){mx.score++;mx.wc+=TW[t.lv];record(t.id,true)}else{record(t.id,false);mx.miss.push({t,p,v,pen:!!viaPen})}
     mScore.textContent=mx.score;mTot.textContent=mx.total;nextMix();
     mTag.innerHTML=ok?`<span class="okc">ข้อที่แล้วถูก</span> · ${t.en}`:`<span class="badc">ข้อที่แล้วผิด</span> · ${p.q} = ${f(p.ans)}${rd}`;return}
-  if(ok){mx.total++;mx.score++;hit(mx.tries===0);if(mx.tries===0)record(t.id,true);mIn.className='ans ok';mQ.innerHTML=qHTML(p.q,p.ans);mTag.innerHTML=`<span class="okc">ถูก</span> · ทางลัดที่ใช้ได้คือ <b>${t.en}</b> (${t.th}) · Enter ข้อต่อไป`;mx.done=true;if(pad)pad.lock(true)}
+  if(ok){mx.total++;mx.score++;hit(mx.tries===0);if(mx.tries===0)record(t.id,true);mIn.className='ans ok';mQ.innerHTML=qHTML(p.q,p.ans);mTag.innerHTML=`<span class="okc">ถูก</span> · ทางลัดที่ใช้ได้คือ <b>${t.en}</b> (${t.th}) · กดข้อต่อไปได้เลย`;mx.done=true;setGo();if(pad)pad.lock(true)}
   else{mx.tries++;mIn.className='ans';void mIn.offsetWidth;mIn.className='ans bad';
     if(mx.tries<2)mTag.innerHTML=`<span class="badc">ยังไม่ถูก</span> ลองอีกครั้ง${rd}`;
-    else{mx.total++;hit(false);record(t.id,false);mx.miss.push({t,p,v,pen:!!viaPen});mx.done=true;if(pad)pad.lock(true);mQ.innerHTML=qHTML(p.q,p.ans);
-      mTag.innerHTML=`<span class="badc">คำตอบคือ ${f(p.ans)}</span> · ใช้ <b>${t.en}</b> · Enter ข้อต่อไป`;
+    else{mx.total++;hit(false);record(t.id,false);mx.miss.push({t,p,v,pen:!!viaPen});mx.done=true;setGo();if(pad)pad.lock(true);mQ.innerHTML=qHTML(p.q,p.ans);
+      mTag.innerHTML=`<span class="badc">คำตอบคือ ${f(p.ans)}</span> · ใช้ <b>${t.en}</b> · กดข้อต่อไปได้เลย`;
       mPrism.innerHTML=prismHTML(p.split);mViz.innerHTML=vizHTML(p.viz,mViz);mSteps.innerHTML=stepsHTML(p.steps)}}
   mScore.textContent=mx.score;mTot.textContent=mx.total}
 
